@@ -4,7 +4,7 @@
 
 Clone the repo and add the following alias to ~/.bash_profile
 ```
-alias ecs='bash /Users/lei/go/src/github.com/iamjinlei/ecs/scripts/ecs.sh'
+alias ecs='bash PATH_TO/ecs/scripts/ecs.sh'
 ```
 Then source ~/.bash_profile
 
