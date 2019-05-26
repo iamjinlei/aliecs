@@ -1,5 +1,7 @@
 ## AliYun ECS Control
 
+This is a utilitiy tool allows you to up/down AliYun ecs instance conveniently, saving instance cost by bringing it up on demand. 
+
 ### Install
 
 Clone the repo and add the following alias to ~/.bash_profile
