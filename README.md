@@ -15,8 +15,9 @@ Then source ~/.bash_profile
 ```
 ecs up     # create a new instance or start an existing one
 ecs down   # stop an existing instance
-ecs del    # deletee an instance
-ecs desc   # only list available instances
+ecs del    # delete an instance
+ecs desc   # list available instances
+ecs go     # ssh into one of the instances
 ```
 
 Instance related configs are in [config.go](https://github.com/iamjinlei/ecs/blob/master/config.go)
