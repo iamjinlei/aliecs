@@ -23,7 +23,8 @@ const (
 type ImageId string
 
 const (
-	CentOs ImageId = "centos_7_06_64_20G_alibase_20190218.vhd"
+	CentOsV706  ImageId = "centos_7_06_64_20G_alibase_20190218.vhd"
+	UbuntuV1604 ImageId = "ubuntu_16_04_64_20G_alibase_20190513.vhd"
 )
 
 type InstanceType string

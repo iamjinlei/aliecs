@@ -58,7 +58,7 @@ func main() {
 	}
 	instances, err := c.DescribeInstances("*")
 	if len(instances) == 0 {
-		lines = append(lines, "|                        |                    |         |                   |")
+		lines = append(lines, "|                        |                    |         |                 |                   |")
 		lines = append(lines, rowSeparator)
 	} else {
 		for _, ins := range instances {

@@ -44,7 +44,7 @@ func NewConfig() (*Cfg, error) {
 		Region:                  RegionHk,
 		Zone:                    ZoneHkB,
 		InstanceType:            T5s,
-		Image:                   CentOs,
+		Image:                   UbuntuV1604,
 		InstanceChargeType:      PostPaid,
 		InternetChargeType:      PayByTraffic,
 		InternetMaxBandwidthIn:  5,
@@ -55,7 +55,8 @@ func NewConfig() (*Cfg, error) {
 		SystemDiskSize:     20,
 
 		InitCmds: []string{
-			"pushd ~/ && curl -LSso setup.sh https://raw.githubusercontent.com/iamjinlei/env/master/centos_dev.sh && bash setup.sh && rm -rf setup.sh && popd",
+			"curl -sL https://raw.githubusercontent.com/iamjinlei/env/master/unix_dev.sh | bash",
+			"curl -sL https://raw.githubusercontent.com/iamjinlei/env/master/unix_eth.sh | bash",
 		},
 	}
 
