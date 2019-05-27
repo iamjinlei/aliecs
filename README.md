@@ -12,6 +12,15 @@ Then source ~/.bash_profile
 
 ### Usage
 
+Set env vars:
+```
+export ECS_ACCESS_KEY_ID        # AliYun access key ID
+export ECS_ACCESS_KEY_SECRET    # AliYun access key secret
+export ECS_KEY_PAIR_NAME        # Optional
+export ECS_ROOT_PWD             # Root password
+```
+
+Commands:
 ```
 ecs up     # create a new instance or start an existing one
 ecs down   # stop an existing instance
