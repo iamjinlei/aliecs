@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-if [ $1 = "up" ] || [ $1 = "down" ] || [ $1 = "del" ] || [ $1 = "desc" ]; then
+if [ $1 = "up" ] || [ $1 = "down" ] || [ $1 = "del" ] || [ $1 = "desc" ] || [ $1 = "run" ]; then
 	go run $SCRIPT_DIR/../cmd/ecs.go -op=$1
 elif [ $1 = "go" ]; then
 	ip=$(go run $SCRIPT_DIR/../cmd/ecs.go -op=desc | grep Running | cut -d"|" -f5 | xargs)

@@ -33,7 +33,7 @@ func acquireInstance(c *ecs.Client, instanceName string) (*ali.Instance, error) 
 }
 
 func main() {
-	op := flag.String("op", "up", "up, down, del, desc")
+	op := flag.String("op", "up", "up, down, del, desc, run")
 	instanceName := flag.String("name", "hk", "instanceName")
 	flag.Parse()
 
@@ -57,16 +57,16 @@ func main() {
 		rowSeparator,
 	}
 	instances, err := c.DescribeInstances("*")
+	instanceIp := ""
 	if len(instances) == 0 {
 		lines = append(lines, "|                        |                    |         |                 |                   |")
 		lines = append(lines, rowSeparator)
 	} else {
 		for _, ins := range instances {
-			ip := ""
-			if len(ins.PublicIpAddress.IpAddress) > 0 {
-				ip = ins.PublicIpAddress.IpAddress[0]
+			if instanceIp == "" && len(ins.PublicIpAddress.IpAddress) > 0 {
+				instanceIp = ins.PublicIpAddress.IpAddress[0]
 			}
-			lines = append(lines, fmt.Sprintf("| %-22s | %-18s | %-7s | %-15s | %-17s |", ins.InstanceId, ins.InstanceType, ins.Status, ip, ins.CreationTime))
+			lines = append(lines, fmt.Sprintf("| %-22s | %-18s | %-7s | %-15s | %-17s |", ins.InstanceId, ins.InstanceType, ins.Status, instanceIp, ins.CreationTime))
 			lines = append(lines, rowSeparator)
 		}
 	}
@@ -75,9 +75,19 @@ func main() {
 	switch *op {
 	case "desc":
 	case "up":
-		ip, isCreated := up(c, cfg, *instanceName)
+		var isCreated bool
+		instanceIp, isCreated = up(c, cfg, *instanceName)
 		if isCreated {
-			if err := initEnv(ip, cfg.RootPwd, cfg.InitCmds); err != nil {
+			ticker := time.NewTicker(loopInterval)
+			pt := ecs.NewProgressTracker()
+			for range ticker.C {
+				if _, err := ecs.NewSsh(instanceIp, cfg.RootPwd); err == nil {
+					break
+				}
+				pt.Info("waiting instance to be ready")
+			}
+
+			if err := initEnv(instanceIp, cfg.RootPwd, cfg.InitCmds); err != nil {
 				ecs.Error("error initializing instance environment %v:", err)
 			}
 		}
@@ -86,6 +96,14 @@ func main() {
 	case "del":
 		if down(c, *instanceName) {
 			del(c, *instanceName)
+		}
+	case "run":
+		if instanceIp == "" {
+			ecs.Error("no instance is running")
+			return
+		}
+		if err := initEnv(instanceIp, cfg.RootPwd, cfg.InitCmds); err != nil {
+			ecs.Error("error running commands%v:", err)
 		}
 	}
 }
@@ -209,15 +227,9 @@ func del(c *ecs.Client, instanceName string) {
 }
 
 func initEnv(ip, rootPwd string, cmds []string) error {
-	ticker := time.NewTicker(loopInterval)
-	pt := ecs.NewProgressTracker()
-	var s *ecs.Ssh
-	for range ticker.C {
-		var err error
-		if s, err = ecs.NewSsh(ip, rootPwd); err == nil {
-			break
-		}
-		pt.Info("waiting instance to be ready")
+	s, err := ecs.NewSsh(ip, rootPwd)
+	if err != nil {
+		return err
 	}
 
 	stopSignal := make(chan bool)
