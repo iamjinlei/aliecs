@@ -50,10 +50,10 @@ func main() {
 	}
 
 	//c.DescribeZones(ecs.RegionHk, ecs.PostPaid)
-	rowSeparator := "+------------------------+--------------------+---------+-------------------+"
+	rowSeparator := "+------------------------+--------------------+---------+-----------------+-------------------+"
 	lines := []string{
 		rowSeparator,
-		fmt.Sprintf("| %-22s | %-18s | %-7s | %-17s |", "InstanceId", "InstanceType", "Status", "CreationTime"),
+		fmt.Sprintf("| %-22s | %-18s | %-7s | %-15s | %-17s |", "InstanceId", "InstanceType", "Status", "Public IP", "CreationTime"),
 		rowSeparator,
 	}
 	instances, err := c.DescribeInstances("*")
@@ -62,7 +62,11 @@ func main() {
 		lines = append(lines, rowSeparator)
 	} else {
 		for _, ins := range instances {
-			lines = append(lines, fmt.Sprintf("| %-22s | %-18s | %-7s | %-17s |", ins.InstanceId, ins.InstanceType, ins.Status, ins.CreationTime))
+			ip := ""
+			if len(ins.PublicIpAddress.IpAddress) > 0 {
+				ip = ins.PublicIpAddress.IpAddress[0]
+			}
+			lines = append(lines, fmt.Sprintf("| %-22s | %-18s | %-7s | %-15s | %-17s |", ins.InstanceId, ins.InstanceType, ins.Status, ip, ins.CreationTime))
 			lines = append(lines, rowSeparator)
 		}
 	}
@@ -73,7 +77,7 @@ func main() {
 	case "up":
 		ip, isCreated := up(c, cfg, *instanceName)
 		if isCreated {
-			if err := initEnv(ip, cfg.RootPwd); err != nil {
+			if err := initEnv(ip, cfg.RootPwd, cfg.InitCmds); err != nil {
 				ecs.Error("error initializing instance environment %v:", err)
 			}
 		}
@@ -204,28 +208,36 @@ func del(c *ecs.Client, instanceName string) {
 	}
 }
 
-func initEnv(ip, rootPwd string) error {
+func initEnv(ip, rootPwd string, cmds []string) error {
 	ticker := time.NewTicker(loopInterval)
 	pt := ecs.NewProgressTracker()
+	var s *ecs.Ssh
 	for range ticker.C {
-		s, err := ecs.NewSsh(ip, rootPwd)
-		if err != nil {
-			pt.Info("waiting instance to be ready")
-			continue
+		var err error
+		if s, err = ecs.NewSsh(ip, rootPwd); err == nil {
+			break
 		}
+		pt.Info("waiting instance to be ready")
+	}
 
-		go func() {
-			for {
+	stopSignal := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-stopSignal:
+				return
+			default:
 				ecs.Info(strings.TrimSpace(string(s.Next())))
 			}
-		}()
-		defer s.Close()
+		}
+	}()
+	defer s.Close()
+	defer func() { stopSignal <- true }()
 
-		if err := s.Run("echo -e '*****env*****'"); err != nil {
+	for _, cmd := range cmds {
+		if err := s.Run(cmd); err != nil {
 			return err
 		}
-
-		return s.Run("pushd ~/ && curl -LSso setup.sh https://raw.githubusercontent.com/iamjinlei/env/master/centos.sh && bash setup.sh && rm -rf setup.sh && source ~/.bash_profile && popd")
 	}
 
 	return nil

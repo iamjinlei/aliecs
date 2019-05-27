@@ -39,20 +39,24 @@ func NewSsh(host, rootPwd string) (*Ssh, error) {
 
 	stdout, err := s.StdoutPipe()
 	if err != nil {
+		c.Close()
 		return nil, err
 	}
 
 	stderr, err := s.StderrPipe()
 	if err != nil {
+		c.Close()
 		return nil, err
 	}
 
 	stdin, err := s.StdinPipe()
 	if err != nil {
+		c.Close()
 		return nil, err
 	}
 
 	if err := s.Shell(); err != nil {
+		c.Close()
 		return nil, err
 	}
 

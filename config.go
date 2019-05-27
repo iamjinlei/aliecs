@@ -30,6 +30,8 @@ type Cfg struct {
 	VSwitch                 string
 	SystemDiskCategory      SystemDiskCategory
 	SystemDiskSize          int
+
+	InitCmds []string
 }
 
 func NewConfig() (*Cfg, error) {
@@ -51,6 +53,10 @@ func NewConfig() (*Cfg, error) {
 		VSwitch:            "vsw-j6cum1alrpi22zdrisxs6",
 		SystemDiskCategory: CloudSsd,
 		SystemDiskSize:     20,
+
+		InitCmds: []string{
+			"pushd ~/ && curl -LSso setup.sh https://raw.githubusercontent.com/iamjinlei/env/master/centos_dev.sh && bash setup.sh && rm -rf setup.sh && popd",
+		},
 	}
 
 	if len(c.AccessKeyId) == 0 {
