@@ -243,6 +243,7 @@ func initEnv(ip, rootPwd string, cmds []string) error {
 			}
 		}
 	}()
+
 	defer s.Close()
 	defer func() { stopSignal <- true }()
 
