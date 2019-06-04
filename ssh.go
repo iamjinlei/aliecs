@@ -106,7 +106,7 @@ func (s *Ssh) Next() []byte {
 }
 
 func (s *Ssh) Run(cmd string) error {
-	if _, err := s.stdinPipe.Write([]byte(cmd + ";echo -e '" + string(endSymbol) + "'\n")); err != nil {
+	if _, err := s.stdinPipe.Write([]byte(cmd + ";echo -e '\n';echo -e '" + string(endSymbol) + "';echo -e '\n'")); err != nil {
 		return err
 	}
 	<-s.signalCh

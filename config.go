@@ -44,7 +44,7 @@ func NewConfig() (*Cfg, error) {
 		Region:                  RegionHk,
 		Zone:                    ZoneHkB,
 		InstanceType:            T5s,
-		Image:                   UbuntuV1604,
+		Image:                   CentOsV706,
 		InstanceChargeType:      PostPaid,
 		InternetChargeType:      PayByTraffic,
 		InternetMaxBandwidthIn:  5,
@@ -55,8 +55,9 @@ func NewConfig() (*Cfg, error) {
 		SystemDiskSize:     20,
 
 		InitCmds: []string{
-			"curl -sL https://raw.githubusercontent.com/iamjinlei/env/master/unix_dev.sh | bash",
-			"curl -sL https://raw.githubusercontent.com/iamjinlei/env/master/unix_eth.sh | bash",
+			//InstallShadowsocks(),
+			InstallUnixDev(),
+			//InstallEthDev(),
 		},
 	}
 
