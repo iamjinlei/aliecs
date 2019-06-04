@@ -75,6 +75,12 @@
 			"revisionTime": "2019-05-22T08:19:30Z"
 		},
 		{
+			"checksumSHA1": "g6JP9Zi80CZLqyxIjhzSnk46qxU=",
+			"path": "github.com/elazarl/goproxy",
+			"revision": "9d40249d3c2f14d1a9d75e070a738362adeb5a83",
+			"revisionTime": "2019-04-21T05:13:19Z"
+		},
+		{
 			"checksumSHA1": "BxH9xJUqczhpL57gfKZe2/VlBHY=",
 			"path": "github.com/fatih/color",
 			"revision": "3f9d52f7176a6927daacff70a3e8d1dc2025c53e",
