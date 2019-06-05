@@ -7,10 +7,10 @@ func InstallShadowsocks() string {
 func InstallUnixDev() string {
 	return `
 	curl -sL https://raw.githubusercontent.com/iamjinlei/env/master/unix_dev.sh | bash;
-	echo -e "\n\n\n\n\n"
-	echo -e "*****************************\n"
-	echo -e "*   Install Unix Dev done   *\n"
-	echo -e "*****************************\n"
+	echo -e "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
+	echo -e "**********************************\n";
+	echo -e "*   Unix Dev Installation done   *\n";
+	echo -e "**********************************\n";
 	`
 }
 

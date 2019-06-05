@@ -31,6 +31,11 @@ var (
 		ZoneHkC: RegionHk,
 		ZoneSgA: RegionSg,
 	}
+	RegionToBr = map[RegionId]string{
+		RegionHz: "hz",
+		RegionHk: "hk",
+		RegionSg: "sg",
+	}
 )
 
 type ImageId string

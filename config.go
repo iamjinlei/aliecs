@@ -46,7 +46,7 @@ func NewConfig() (*Cfg, error) {
 		AccessKeySecret:         os.Getenv("ECS_ACCESS_KEY_SECRET"),
 		KeyPairName:             os.Getenv("ECS_KEY_PAIR_NAME"),
 		RootPwd:                 os.Getenv("ECS_ROOT_PWD"),
-		Zone:                    ZoneHzB,
+		Zone:                    ZoneHkB,
 		InstanceType:            T5s,
 		Image:                   CentOsV706,
 		InstanceChargeType:      PostPaid,

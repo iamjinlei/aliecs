@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os/exec"
 	"sort"
 	"strings"
 	"time"
@@ -17,7 +16,7 @@ const (
 	loopInterval = 500 * time.Millisecond
 )
 
-func acquireInstance(c *ecs.Client, region, ip string) (*ali.Instance, error) {
+func acquireInstanceByIp(c *ecs.Client, region, ip string) (*ali.Instance, error) {
 	instances, err := c.DescribeInstances(ecs.RegionId(region), ip)
 	if err != nil {
 		return nil, err
@@ -32,6 +31,25 @@ func acquireInstance(c *ecs.Client, region, ip string) (*ali.Instance, error) {
 	}
 
 	return &instances[0], nil
+}
+
+func acquireInstanceByName(c *ecs.Client, region, name string) (*ali.Instance, error) {
+	instances, err := c.DescribeInstances(ecs.RegionId(region), "")
+	if err != nil {
+		return nil, err
+	}
+
+	if len(instances) == 0 {
+		return nil, nil
+	}
+
+	for _, ins := range instances {
+		if ins.InstanceName == name {
+			return &ins, nil
+		}
+	}
+
+	return nil, nil
 }
 
 type instanceList []ali.Instance
@@ -84,18 +102,19 @@ func main() {
 	}
 	sort.Sort(instanceList(instances))
 
-	schema := "| %-3s | %-15s | %-22s | %-18s | %-7s | %-15s | %-17s |"
-	rowSeparator := "+-----+-----------------+------------------------+--------------------+---------+-----------------+-------------------+"
+	schema := "| %-3s | %-15s | %-22s | %-22s | %-18s | %-7s | %-15s | %-17s |"
+	rowSeparator := "+-----+-----------------+------------------------+------------------------+--------------------+---------+-----------------+-------------------+"
 	lines := []string{
 		rowSeparator,
-		fmt.Sprintf(schema, "Idx", "ZoneId", "InstanceId", "InstanceType", "Status", "Public IP", "CreationTime"),
+		fmt.Sprintf(schema, "Idx", "ZoneId", "InstanceId", "InstanceName", "InstanceType", "Status", "Public IP", "CreationTime"),
 		rowSeparator,
 	}
 
 	ip := ""
 	region := ""
+	name := ""
 	if len(instances) == 0 {
-		lines = append(lines, fmt.Sprintf(schema, "", "", "", "", "", "", ""))
+		lines = append(lines, fmt.Sprintf(schema, "", "", "", "", "", "", "", ""))
 		lines = append(lines, rowSeparator)
 	} else {
 		for idx, ins := range instances {
@@ -103,7 +122,7 @@ func main() {
 			if len(ins.PublicIpAddress.IpAddress) > 0 {
 				insIp = ins.PublicIpAddress.IpAddress[0]
 			}
-			lines = append(lines, fmt.Sprintf(schema, fmt.Sprintf("%v", idx), ins.ZoneId, ins.InstanceId, ins.InstanceType, ins.Status, insIp, ins.CreationTime))
+			lines = append(lines, fmt.Sprintf(schema, fmt.Sprintf("%v", idx), ins.ZoneId, ins.InstanceId, ins.InstanceName, ins.InstanceType, ins.Status, insIp, ins.CreationTime))
 			lines = append(lines, rowSeparator)
 		}
 		if *idx < len(instances) {
@@ -112,6 +131,7 @@ func main() {
 				ip = targetIns.PublicIpAddress.IpAddress[0]
 			}
 			region = targetIns.RegionId
+			name = targetIns.InstanceName
 		}
 	}
 	ecs.Text(strings.Join(lines, "\n"))
@@ -135,23 +155,22 @@ func main() {
 			}
 		}
 	case "down":
-		if ip == "" {
+		if name == "" {
 			ecs.Error("no instance is running")
 			return
 		}
-		down(c, region, ip)
+		down(c, region, name)
 	case "del":
-		if ip == "" {
+		if name == "" {
 			ecs.Error("no instance is running")
 			return
 		}
-		ecs.Info("deleting %v %v", region, ip)
-		if down(c, region, ip) {
-			del(c, region, ip)
+		if down(c, region, name) {
+			del(c, region, name)
 		}
 	case "run":
 		if ip == "" {
-			ecs.Error("no instance is running")
+			ecs.Error("no instance has no public IP")
 			return
 		}
 		if err := runCmds(ip, cfg.RootPwd, cfg.InitCmds); err != nil {
@@ -159,20 +178,9 @@ func main() {
 		}
 	case "proxy":
 		if ip == "" {
-			ecs.Error("target instance IP is missing")
+			ecs.Error("no instance has no public IP")
 			return
 		}
-
-		go func() {
-			ecs.Info("start ssh tunnel")
-			cmd := exec.Command("ssh", "-CN", "-D", "8080", "root@"+ip)
-			res, err := cmd.CombinedOutput()
-			if err != nil {
-				ecs.Error("error executing ssh tunnel: %v", err)
-				return
-			}
-			ecs.Info(string(res))
-		}()
 
 		if err := runCmds(ip, cfg.RootPwd, []string{ecs.RunProxy()}); err != nil {
 			ecs.Error("error running proxy %v:", err)
@@ -184,9 +192,10 @@ func up(c *ecs.Client, cfg *ecs.Cfg) (string, bool) {
 	ticker := time.NewTicker(loopInterval)
 	pt := ecs.NewProgressTracker()
 	isCreated := false
-	instanceName := time.Now().Format("2006-01-02 15:04:05")
+
+	instanceName := ecs.RegionToBr[cfg.Derived.Region] + "-" + time.Now().Format("20060102T1504")
 	for range ticker.C {
-		if ins, err := acquireInstance(c, string(cfg.Derived.Region), instanceName); err != nil {
+		if ins, err := acquireInstanceByName(c, string(cfg.Derived.Region), instanceName); err != nil {
 			ecs.Error("error querying instances: %v", err)
 			continue
 		} else {
@@ -231,11 +240,11 @@ func up(c *ecs.Client, cfg *ecs.Cfg) (string, bool) {
 	return "", false
 }
 
-func down(c *ecs.Client, region, ip string) bool {
+func down(c *ecs.Client, region, name string) bool {
 	ticker := time.NewTicker(loopInterval)
 	pt := ecs.NewProgressTracker()
 	for range ticker.C {
-		if ins, err := acquireInstance(c, region, ip); err != nil {
+		if ins, err := acquireInstanceByName(c, region, name); err != nil {
 			ecs.Error("error querying instances: %v", err)
 			continue
 		} else {
@@ -265,11 +274,11 @@ func down(c *ecs.Client, region, ip string) bool {
 	return false
 }
 
-func del(c *ecs.Client, region, ip string) {
+func del(c *ecs.Client, region, name string) {
 	ticker := time.NewTicker(loopInterval)
 	pt := ecs.NewProgressTracker()
 	for range ticker.C {
-		if ins, err := acquireInstance(c, region, ip); err != nil {
+		if ins, err := acquireInstanceByName(c, region, name); err != nil {
 			ecs.Error("error querying instances: %v", err)
 			continue
 		} else {
@@ -289,7 +298,7 @@ func del(c *ecs.Client, region, ip string) {
 	}
 
 	for range ticker.C {
-		if ins, err := acquireInstance(c, region, ip); err != nil {
+		if ins, err := acquireInstanceByName(c, region, name); err != nil {
 			ecs.Error("error querying instances: %v", err)
 			continue
 		} else if ins == nil {
