@@ -76,28 +76,25 @@ func NewSsh(host, rootPwd string) (*Ssh, error) {
 
 func (s *Ssh) logLoop(r io.Reader) {
 	br := bufio.NewReaderSize(r, 8192)
-	var bytes []byte
 
 	for {
-		data, isPrefix, err := br.ReadLine()
+		bytes, err := br.ReadBytes('\n')
 
-		if err != nil && err != io.EOF {
-			Error("error reading pipe: %v", err)
+		if err != nil {
+			if err != io.EOF {
+				Error("error reading pipe: %v", err)
+			}
 			s.signalCh <- true
 			return
 		}
 
-		bytes = append(bytes, data...)
-		if isPrefix {
-			continue
-		}
-
+		bytes = bytes[:len(bytes)-1]
 		if len(bytes) == len(endSymbol) && string(bytes) == string(endSymbol) {
 			s.signalCh <- true
+			return
 		} else {
 			s.outCh <- bytes
 		}
-		bytes = nil
 	}
 }
 
@@ -106,7 +103,10 @@ func (s *Ssh) Next() []byte {
 }
 
 func (s *Ssh) Run(cmd string) error {
-	if _, err := s.stdinPipe.Write([]byte(cmd + ";echo -e '\n';echo -e '" + string(endSymbol) + "';echo -e '\n'\n")); err != nil {
+	if _, err := s.stdinPipe.Write([]byte(cmd + "\n")); err != nil {
+		return err
+	}
+	if _, err := s.stdinPipe.Write([]byte("echo -e '\n';echo -e '" + string(endSymbol) + "';echo -e '\n'\n")); err != nil {
 		return err
 	}
 	<-s.signalCh

@@ -10,14 +10,27 @@ const (
 type RegionId string
 
 const (
+	RegionHz RegionId = "cn-hangzhou"
 	RegionHk RegionId = "cn-hongkong"
+	RegionSg RegionId = "ap-southeast-1"
 )
 
 type ZoneId string
 
 const (
+	ZoneHzB ZoneId = "cn-hangzhou-b"
 	ZoneHkB ZoneId = "cn-hongkong-b"
 	ZoneHkC ZoneId = "cn-hongkong-c"
+	ZoneSgA ZoneId = "ap-southeast-1c"
+)
+
+var (
+	ZoneToRegion = map[ZoneId]RegionId{
+		ZoneHzB: RegionHz,
+		ZoneHkB: RegionHk,
+		ZoneHkC: RegionHk,
+		ZoneSgA: RegionSg,
+	}
 )
 
 type ImageId string

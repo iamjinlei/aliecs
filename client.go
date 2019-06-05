@@ -10,9 +10,9 @@ type Client struct {
 }
 
 func NewClient(config *Cfg) (*Client, error) {
-	c, err := ali.NewClientWithAccessKey(string(config.Region), config.AccessKeyId, config.AccessKeySecret)
+	c, err := ali.NewClientWithAccessKey(string(config.Derived.Region), config.AccessKeyId, config.AccessKeySecret)
 	if err != nil {
 		return nil, err
 	}
-	return &Client{region: config.Region, ali: c}, nil
+	return &Client{region: config.Derived.Region, ali: c}, nil
 }

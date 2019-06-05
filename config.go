@@ -9,7 +9,12 @@ var (
 	ErrBadAccessKeyId     = errors.New("bad access key id")
 	ErrBadAccessKeySecret = errors.New("bad access key secret")
 	ErrBadRootPwd         = errors.New("bad root pasword")
+	ErrNoMatchingRegion   = errors.New("no matching region found for zone")
 )
+
+type Derived struct {
+	Region RegionId
+}
 
 type Cfg struct {
 	DryRun bool
@@ -19,7 +24,6 @@ type Cfg struct {
 	KeyPairName     string
 	RootPwd         string
 
-	Region                  RegionId
 	Zone                    ZoneId
 	InstanceType            InstanceType
 	Image                   ImageId
@@ -27,11 +31,12 @@ type Cfg struct {
 	InternetChargeType      InternetChargeType
 	InternetMaxBandwidthIn  int
 	InternetMaxBandwidthOut int
-	VSwitch                 string
 	SystemDiskCategory      SystemDiskCategory
 	SystemDiskSize          int
 
 	InitCmds []string
+
+	Derived Derived
 }
 
 func NewConfig() (*Cfg, error) {
@@ -41,18 +46,15 @@ func NewConfig() (*Cfg, error) {
 		AccessKeySecret:         os.Getenv("ECS_ACCESS_KEY_SECRET"),
 		KeyPairName:             os.Getenv("ECS_KEY_PAIR_NAME"),
 		RootPwd:                 os.Getenv("ECS_ROOT_PWD"),
-		Region:                  RegionHk,
-		Zone:                    ZoneHkB,
+		Zone:                    ZoneHzB,
 		InstanceType:            T5s,
 		Image:                   CentOsV706,
 		InstanceChargeType:      PostPaid,
 		InternetChargeType:      PayByTraffic,
 		InternetMaxBandwidthIn:  5,
 		InternetMaxBandwidthOut: 5,
-		//VSwitch:                 "vsw-j6ch3rbwekgl875d21gyt",
-		VSwitch:            "vsw-j6cum1alrpi22zdrisxs6",
-		SystemDiskCategory: CloudSsd,
-		SystemDiskSize:     20,
+		SystemDiskCategory:      CloudSsd,
+		SystemDiskSize:          20,
 
 		InitCmds: []string{
 			//InstallShadowsocks(),
@@ -70,6 +72,13 @@ func NewConfig() (*Cfg, error) {
 	if len(c.RootPwd) == 0 {
 		return nil, ErrBadRootPwd
 	}
+
+	region, found := ZoneToRegion[c.Zone]
+	if !found {
+		return nil, ErrNoMatchingRegion
+	}
+
+	c.Derived.Region = region
 
 	return c, nil
 }
