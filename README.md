@@ -28,5 +28,6 @@ ecs del    # delete an instance
 ecs desc   # list available instances
 ecs go     # ssh into one of the instances
 ```
+All those commands support an optional index to specify a particular instance to operate on. The index is defined in the table from the **ecs desc***. Index 0 is used by default.
 
 Instance related configs are in [config.go](https://github.com/iamjinlei/ecs/blob/master/config.go)
