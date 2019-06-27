@@ -87,6 +87,12 @@
 			"revisionTime": "2018-10-10T23:13:11Z"
 		},
 		{
+			"checksumSHA1": "dUnnwfU5cvixft91S6+XTCpHDB8=",
+			"path": "github.com/iamjinlei/gossh",
+			"revision": "97414d5ac73f82e477ed5dd8cf6aea258e78cc2a",
+			"revisionTime": "2019-06-27T06:50:57Z"
+		},
+		{
 			"checksumSHA1": "blwbl9vPvRLtL5QlZgfpLvsFiZ4=",
 			"path": "github.com/jmespath/go-jmespath",
 			"revision": "c2b33e8439af944379acbdd9c3a5fe0bc44bd8a5",
@@ -133,5 +139,5 @@
 			"revision": ""
 		}
 	],
-	"rootPath": "github.com/iamjinlei/ecs"
+	"rootPath": "github.com/iamjinlei/aliecs"
 }

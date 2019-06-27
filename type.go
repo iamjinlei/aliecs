@@ -1,4 +1,4 @@
-package ecs
+package aliecs
 
 type InstanceChargeType string
 

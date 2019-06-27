@@ -9,15 +9,16 @@ import (
 
 	ali "github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 
-	"github.com/iamjinlei/ecs"
+	"github.com/iamjinlei/aliecs"
+	"github.com/iamjinlei/gossh"
 )
 
 const (
 	loopInterval = 500 * time.Millisecond
 )
 
-func acquireInstanceByIp(c *ecs.Client, region, ip string) (*ali.Instance, error) {
-	instances, err := c.DescribeInstances(ecs.RegionId(region), ip)
+func acquireInstanceByIp(c *aliecs.Client, region, ip string) (*ali.Instance, error) {
+	instances, err := c.DescribeInstances(aliecs.RegionId(region), ip)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +34,8 @@ func acquireInstanceByIp(c *ecs.Client, region, ip string) (*ali.Instance, error
 	return &instances[0], nil
 }
 
-func acquireInstanceByName(c *ecs.Client, region, name string) (*ali.Instance, error) {
-	instances, err := c.DescribeInstances(ecs.RegionId(region), "")
+func acquireInstanceByName(c *aliecs.Client, region, name string) (*ali.Instance, error) {
+	instances, err := c.DescribeInstances(aliecs.RegionId(region), "")
 	if err != nil {
 		return nil, err
 	}
@@ -74,28 +75,28 @@ func main() {
 	idx := flag.Int("idx", 0, "idx")
 	flag.Parse()
 
-	cfg, err := ecs.NewConfig()
+	cfg, err := aliecs.NewConfig()
 	if err != nil {
-		ecs.Error("error creating config: %v", err)
+		aliecs.Error("error creating config: %v", err)
 		return
 	}
 
-	c, err := ecs.NewClient(cfg)
+	c, err := aliecs.NewClient(cfg)
 	if err != nil {
-		ecs.Error("error creating ecs client: %v", err)
+		aliecs.Error("error creating ecs client: %v", err)
 		return
 	}
 	//c.DescribeZones(ecs.RegionHk, ecs.PostPaid)
 
-	regions := map[ecs.RegionId]bool{}
-	for _, r := range ecs.ZoneToRegion {
+	regions := map[aliecs.RegionId]bool{}
+	for _, r := range aliecs.ZoneToRegion {
 		regions[r] = true
 	}
 	instances := []ali.Instance{}
 	for r, _ := range regions {
 		results, err := c.DescribeInstances(r, "")
 		if err != nil {
-			ecs.Error("error describe region %v: %v", r, err)
+			aliecs.Error("error describe region %v: %v", r, err)
 			return
 		}
 		instances = append(instances, results...)
@@ -134,35 +135,26 @@ func main() {
 			name = targetIns.InstanceName
 		}
 	}
-	ecs.Text(strings.Join(lines, "\n"))
+	aliecs.Text(strings.Join(lines, "\n"))
 
 	switch *op {
 	case "desc":
 	case "up":
 		instanceIp, isCreated := up(c, cfg)
 		if isCreated {
-			ticker := time.NewTicker(loopInterval)
-			pt := ecs.NewProgressTracker()
-			for range ticker.C {
-				if _, err := ecs.NewSsh(instanceIp, cfg.RootPwd); err == nil {
-					break
-				}
-				pt.Info("waiting instance to be ready")
-			}
-
 			if err := runCmds(instanceIp, cfg.RootPwd, cfg.InitCmds); err != nil {
-				ecs.Error("error initializing instance environment: %v", err)
+				aliecs.Error("error initializing instance environment: %v", err)
 			}
 		}
 	case "down":
 		if name == "" {
-			ecs.Error("no instance is running")
+			aliecs.Error("no instance is running")
 			return
 		}
 		down(c, region, name)
 	case "del":
 		if name == "" {
-			ecs.Error("no instance is running")
+			aliecs.Error("no instance is running")
 			return
 		}
 		if down(c, region, name) {
@@ -170,39 +162,30 @@ func main() {
 		}
 	case "run":
 		if ip == "" {
-			ecs.Error("no instance has no public IP")
+			aliecs.Error("no instance has no public IP")
 			return
 		}
 		if err := runCmds(ip, cfg.RootPwd, cfg.InitCmds); err != nil {
-			ecs.Error("error running commands: %v", err)
-		}
-	case "proxy":
-		if ip == "" {
-			ecs.Error("no instance has no public IP")
-			return
-		}
-
-		if err := runCmds(ip, cfg.RootPwd, []string{ecs.RunProxy()}); err != nil {
-			ecs.Error("error running proxy %v:", err)
+			aliecs.Error("error running commands: %v", err)
 		}
 	}
 }
 
-func up(c *ecs.Client, cfg *ecs.Cfg) (string, bool) {
+func up(c *aliecs.Client, cfg *aliecs.Cfg) (string, bool) {
 	ticker := time.NewTicker(loopInterval)
-	pt := ecs.NewProgressTracker()
+	pt := aliecs.NewProgressTracker()
 	isCreated := false
 
-	instanceName := ecs.RegionToBr[cfg.Derived.Region] + "-" + time.Now().Format("20060102T1504")
+	instanceName := aliecs.RegionToBr[cfg.Derived.Region] + "-" + time.Now().Format("20060102T1504")
 	for range ticker.C {
 		if ins, err := acquireInstanceByName(c, string(cfg.Derived.Region), instanceName); err != nil {
-			ecs.Error("error querying instances: %v", err)
+			aliecs.Error("error querying instances: %v", err)
 			continue
 		} else {
 			if ins == nil {
 				// instance does NOT exist
 				if _, err := c.CreateInstance(cfg, instanceName); err != nil {
-					ecs.Error("error creating instance %v", err)
+					aliecs.Error("error creating instance %v", err)
 				}
 				isCreated = true
 				continue
@@ -214,24 +197,24 @@ func up(c *ecs.Client, cfg *ecs.Cfg) (string, bool) {
 				ip = ins.PublicIpAddress.IpAddress[0]
 			}
 			switch ins.Status {
-			case string(ecs.Running):
+			case string(aliecs.Running):
 				if len(ip) == 0 {
-					ecs.Info("public IP address is missing, requesting a new one")
+					aliecs.Info("public IP address is missing, requesting a new one")
 					if _, err := c.BindPublicIp(ins.InstanceId); err != nil {
-						ecs.Error("error binding public ip to instance: %v", err)
+						aliecs.Error("error binding public ip to instance: %v", err)
 					}
 				} else {
-					ecs.Info("instance is up running, IP: %s", ip)
+					aliecs.Info("instance is up running, IP: %s", ip)
 					return ip, isCreated
 				}
-			case string(ecs.Starting):
+			case string(aliecs.Starting):
 				pt.Info("instance is being started up")
-			case string(ecs.Stopping):
+			case string(aliecs.Stopping):
 				pt.Info("instance is being stopped")
-			case string(ecs.Stopped):
-				ecs.Info("instance is stopped, trying to start it up")
+			case string(aliecs.Stopped):
+				aliecs.Info("instance is stopped, trying to start it up")
 				if err := c.StartInstance(ins.InstanceId); err != nil {
-					ecs.Error("error starting ecs instance: %v", err)
+					aliecs.Error("error starting ecs instance: %v", err)
 				}
 			}
 		}
@@ -240,32 +223,32 @@ func up(c *ecs.Client, cfg *ecs.Cfg) (string, bool) {
 	return "", false
 }
 
-func down(c *ecs.Client, region, name string) bool {
+func down(c *aliecs.Client, region, name string) bool {
 	ticker := time.NewTicker(loopInterval)
-	pt := ecs.NewProgressTracker()
+	pt := aliecs.NewProgressTracker()
 	for range ticker.C {
 		if ins, err := acquireInstanceByName(c, region, name); err != nil {
-			ecs.Error("error querying instances: %v", err)
+			aliecs.Error("error querying instances: %v", err)
 			continue
 		} else {
 			if ins == nil {
-				ecs.Info("instance does NOT exist")
+				aliecs.Info("instance does NOT exist")
 				return false
 			}
 
 			// instance exists
 			switch ins.Status {
-			case string(ecs.Running):
-				ecs.Info("instance is running, trying to stop it")
+			case string(aliecs.Running):
+				aliecs.Info("instance is running, trying to stop it")
 				if err := c.StopInstance(ins.InstanceId); err != nil {
-					ecs.Error("error starting ecs instance: %v", err)
+					aliecs.Error("error starting ecs instance: %v", err)
 				}
-			case string(ecs.Starting):
+			case string(aliecs.Starting):
 				pt.Info("instance is being started up")
-			case string(ecs.Stopping):
+			case string(aliecs.Stopping):
 				pt.Info("instance is being stopped")
-			case string(ecs.Stopped):
-				ecs.Info("instance is stopped")
+			case string(aliecs.Stopped):
+				aliecs.Info("instance is stopped")
 				return true
 			}
 		}
@@ -274,23 +257,23 @@ func down(c *ecs.Client, region, name string) bool {
 	return false
 }
 
-func del(c *ecs.Client, region, name string) {
+func del(c *aliecs.Client, region, name string) {
 	ticker := time.NewTicker(loopInterval)
-	pt := ecs.NewProgressTracker()
+	pt := aliecs.NewProgressTracker()
 	for range ticker.C {
 		if ins, err := acquireInstanceByName(c, region, name); err != nil {
-			ecs.Error("error querying instances: %v", err)
+			aliecs.Error("error querying instances: %v", err)
 			continue
 		} else {
 			if ins == nil {
-				ecs.Info("instance does NOT exist")
+				aliecs.Info("instance does NOT exist")
 				return
 			}
 
 			// instance exists
-			ecs.Info("instance exists, trying to delete it")
-			if err := c.DeleteInstance(ecs.RegionId(region), ins.InstanceId); err != nil {
-				ecs.Error("error deleting ecs instance: %v", err)
+			aliecs.Info("instance exists, trying to delete it")
+			if err := c.DeleteInstance(aliecs.RegionId(region), ins.InstanceId); err != nil {
+				aliecs.Error("error deleting ecs instance: %v", err)
 				continue
 			}
 			break
@@ -299,10 +282,10 @@ func del(c *ecs.Client, region, name string) {
 
 	for range ticker.C {
 		if ins, err := acquireInstanceByName(c, region, name); err != nil {
-			ecs.Error("error querying instances: %v", err)
+			aliecs.Error("error querying instances: %v", err)
 			continue
 		} else if ins == nil {
-			ecs.Info("instance is deleted")
+			aliecs.Info("instance is deleted")
 			return
 		}
 		pt.Info("instance is being deleted")
@@ -310,32 +293,20 @@ func del(c *ecs.Client, region, name string) {
 }
 
 func runCmds(ip, rootPwd string, cmds []string) error {
+	s, err := gossh.NewSession(ip+":22", "root", rootPwd, time.Minute)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
 	for _, cmd := range cmds {
-		s, err := ecs.NewSsh(ip, rootPwd)
+		c, err := s.Run(cmd)
 		if err != nil {
 			return err
 		}
 
-		stopSignal := make(chan bool)
-		go func() {
-			for {
-				select {
-				case <-stopSignal:
-					return
-				default:
-					ecs.Info(strings.TrimSpace(string(s.Next())))
-				}
-			}
-		}()
-
-		err = s.Run(cmd)
-
-		s.Close()
-		stopSignal <- true
-
-		if err != nil {
-			return err
-		}
+		c.TailLog()
+		c.Close()
 	}
 
 	return nil
