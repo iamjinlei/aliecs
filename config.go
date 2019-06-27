@@ -41,14 +41,15 @@ type Cfg struct {
 
 func NewConfig() (*Cfg, error) {
 	c := &Cfg{
-		DryRun:                  false,
-		AccessKeyId:             os.Getenv("ECS_ACCESS_KEY_ID"),
-		AccessKeySecret:         os.Getenv("ECS_ACCESS_KEY_SECRET"),
-		KeyPairName:             os.Getenv("ECS_KEY_PAIR_NAME"),
-		RootPwd:                 os.Getenv("ECS_ROOT_PWD"),
-		Zone:                    ZoneHkB,
-		InstanceType:            T5s,
-		Image:                   CentOsV706,
+		DryRun:          false,
+		AccessKeyId:     os.Getenv("ECS_ACCESS_KEY_ID"),
+		AccessKeySecret: os.Getenv("ECS_ACCESS_KEY_SECRET"),
+		KeyPairName:     os.Getenv("ECS_KEY_PAIR_NAME"),
+		RootPwd:         os.Getenv("ECS_ROOT_PWD"),
+		Zone:            ZoneHkB,
+		InstanceType:    T5c2m4,
+		//Image:                   CentOsV706,
+		Image:                   UbuntuV1604,
 		InstanceChargeType:      PostPaid,
 		InternetChargeType:      PayByTraffic,
 		InternetMaxBandwidthIn:  5,
