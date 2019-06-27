@@ -293,7 +293,7 @@ func del(c *aliecs.Client, region, name string) {
 }
 
 func runCmds(ip, rootPwd string, cmds []string) error {
-	s, err := gossh.NewSession(ip+":22", "root", rootPwd, time.Minute)
+	s, err := gossh.NewSessionWithRetry(ip+":22", "root", rootPwd, 10*time.Minute)
 	if err != nil {
 		return err
 	}
