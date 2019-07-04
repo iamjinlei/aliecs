@@ -48,12 +48,12 @@ const (
 type InstanceType string
 
 const (
-	T5c1m1 InstanceType = "ecs.t5-lc1m1.small" // 1Core-1GB
-	T5c1m2 InstanceType = "ecs.t5-lc1m2.small" // 1Core-2GB
-	T5c2m2 InstanceType = "ecs.t5-c1m1.large"  // 2Core-2GB
-	T5c2m4 InstanceType = "ecs.t5-lc1m2.large" // 2Core-4GB
-	T5c4m4 InstanceType = "ecs.t5-c1m1.xlarge" // 4Core-4GB
-	T5c4m8 InstanceType = "ecs.t5-c1m2.xlarge" // 4Core-8GB
+	T5c1m1 InstanceType = "ecs.t5-lc1m1.small" // 1Core-1GB 0.09 + 0.01/hr
+	T5c1m2 InstanceType = "ecs.t5-lc1m2.small" // 1Core-2GB 0.14 + 0.01/hr
+	T5c2m2 InstanceType = "ecs.t5-c1m1.large"  // 2Core-2GB 0.22 + 0.01/hr
+	T5c2m4 InstanceType = "ecs.t5-lc1m2.large" // 2Core-4GB 0.31 + 0.01/hr
+	T5c4m4 InstanceType = "ecs.t5-c1m1.xlarge" // 4Core-4GB 0.44 + 0.01/hr
+	T5c4m8 InstanceType = "ecs.t5-c1m2.xlarge" // 4Core-8GB 0.61 + 0.01/hr
 )
 
 type InstanceStatus string
