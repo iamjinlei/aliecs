@@ -228,6 +228,14 @@ func (c *Client) StartInstance(instanceId string) error {
 	return err
 }
 
+func (c *Client) RebootInstance(instanceId string) error {
+	req := ali.CreateRebootInstanceRequest()
+	req.InstanceId = instanceId
+
+	_, err := c.ali.RebootInstance(req)
+	return err
+}
+
 func (c *Client) StopInstance(instanceId string) error {
 	req := ali.CreateStopInstanceRequest()
 	req.InstanceId = instanceId

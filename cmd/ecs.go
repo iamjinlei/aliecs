@@ -71,7 +71,7 @@ func (s instanceList) Less(i, j int) bool {
 }
 
 func main() {
-	op := flag.String("op", "up", "up, down, del, desc, run")
+	op := flag.String("op", "up", "up, down, del, desc, run, reboot")
 	idx := flag.Int("idx", 0, "idx")
 	flag.Parse()
 
@@ -146,6 +146,12 @@ func main() {
 				aliecs.Error("error initializing instance environment: %v", err)
 			}
 		}
+	case "reboot":
+		if name == "" {
+			aliecs.Error("no instance is running")
+			return
+		}
+		reboot(c, region, name)
 	case "down":
 		if name == "" {
 			aliecs.Error("no instance is running")
@@ -221,6 +227,47 @@ func up(c *aliecs.Client, cfg *aliecs.Cfg) (string, bool) {
 	}
 
 	return "", false
+}
+
+func reboot(c *aliecs.Client, region, name string) bool {
+	ticker := time.NewTicker(loopInterval)
+	pt := aliecs.NewProgressTracker()
+	rebooted := false
+	for range ticker.C {
+		if ins, err := acquireInstanceByName(c, region, name); err != nil {
+			aliecs.Error("error querying instances: %v", err)
+			continue
+		} else {
+			if ins == nil {
+				aliecs.Info("instance does NOT exist")
+				return false
+			}
+
+			if !rebooted {
+				if err := c.RebootInstance(ins.InstanceId); err != nil {
+					aliecs.Error("error starting ecs instance: %v", err)
+				} else {
+					rebooted = true
+				}
+				continue
+			}
+
+			// instance exists
+			switch ins.Status {
+			case string(aliecs.Running):
+				aliecs.Info("instance is up running")
+				return true
+			case string(aliecs.Starting):
+				pt.Info("instance is being started up")
+			case string(aliecs.Stopping):
+				pt.Info("instance is being stopped")
+			case string(aliecs.Stopped):
+				aliecs.Info("instance is stopped")
+			}
+		}
+	}
+
+	return false
 }
 
 func down(c *aliecs.Client, region, name string) bool {
