@@ -1,4 +1,4 @@
-package aliecs
+package aliyun
 
 import (
 	"fmt"

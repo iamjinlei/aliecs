@@ -1,17 +1,17 @@
-package aliecs
+package aliyun
 
 import (
 	"fmt"
 
-	ali "github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 )
 
-func (c *Client) DescribeZones(region RegionId, instanceChargeType InstanceChargeType) {
-	req := ali.CreateDescribeZonesRequest()
+func (c *EcsClient) DescribeZones(region RegionId, instanceChargeType InstanceChargeType) {
+	req := ecs.CreateDescribeZonesRequest()
 	req.RegionId = string(region)
 	req.InstanceChargeType = string(instanceChargeType)
 
-	response, err := c.ali.DescribeZones(req)
+	response, err := c.ecs.DescribeZones(req)
 	if err != nil {
 		fmt.Print(err.Error())
 	}

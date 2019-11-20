@@ -1,4 +1,4 @@
-package aliecs
+package aliyun
 
 import (
 	"errors"
@@ -16,7 +16,18 @@ type Derived struct {
 	Region RegionId
 }
 
-type Cfg struct {
+type DomainCfg struct {
+	DryRun bool
+
+	AccessKeyId     string
+	AccessKeySecret string
+
+	Zone ZoneId
+
+	Derived Derived
+}
+
+type EcsCfg struct {
 	DryRun bool
 
 	AccessKeyId     string
@@ -39,8 +50,8 @@ type Cfg struct {
 	Derived Derived
 }
 
-func NewConfig() (*Cfg, error) {
-	c := &Cfg{
+func NewEcsConfig() (*EcsCfg, error) {
+	c := &EcsCfg{
 		DryRun:          false,
 		AccessKeyId:     os.Getenv("ECS_ACCESS_KEY_ID"),
 		AccessKeySecret: os.Getenv("ECS_ACCESS_KEY_SECRET"),

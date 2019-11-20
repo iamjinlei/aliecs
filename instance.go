@@ -1,12 +1,25 @@
-package aliecs
+package aliyun
 
 import (
 	"errors"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	ali "github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 )
+
+type EcsClient struct {
+	region RegionId
+	ecs    *ecs.Client
+}
+
+func NewEcsClient(config *EcsCfg) (*EcsClient, error) {
+	c, err := ecs.NewClientWithAccessKey(string(config.Derived.Region), config.AccessKeyId, config.AccessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	return &EcsClient{region: config.Derived.Region, ecs: c}, nil
+}
 
 const (
 	vpcCidrBlock     = "172.16.0.0/12"
@@ -19,21 +32,21 @@ var (
 	ErrVSwitchCreation      = errors.New("unknown vswitch creation error")
 )
 
-func (c *Client) describeVpcs(region RegionId) ([]ali.Vpc, error) {
-	req := ali.CreateDescribeVpcsRequest()
+func (c *EcsClient) describeVpcs(region RegionId) ([]ecs.Vpc, error) {
+	req := ecs.CreateDescribeVpcsRequest()
 	req.RegionId = string(region)
-	resp, err := c.ali.DescribeVpcs(req)
+	resp, err := c.ecs.DescribeVpcs(req)
 	if err != nil {
 		return nil, err
 	}
 	return resp.Vpcs.Vpc, err
 }
 
-func (c *Client) createVpc(region RegionId) (string, error) {
-	req := ali.CreateCreateVpcRequest()
+func (c *EcsClient) createVpc(region RegionId) (string, error) {
+	req := ecs.CreateCreateVpcRequest()
 	req.RegionId = string(region)
 	req.CidrBlock = vpcCidrBlock
-	resp, err := c.ali.CreateVpc(req)
+	resp, err := c.ecs.CreateVpc(req)
 	if err != nil {
 		return "", err
 	}
@@ -41,15 +54,15 @@ func (c *Client) createVpc(region RegionId) (string, error) {
 	return resp.VpcId, nil
 }
 
-func (c *Client) deleteVpc(region RegionId, vpcId string) error {
-	req := ali.CreateDeleteVpcRequest()
+func (c *EcsClient) deleteVpc(region RegionId, vpcId string) error {
+	req := ecs.CreateDeleteVpcRequest()
 	req.RegionId = string(region)
 	req.VpcId = vpcId
-	_, err := c.ali.DeleteVpc(req)
+	_, err := c.ecs.DeleteVpc(req)
 	return err
 }
 
-func (c *Client) ensureVpc(region RegionId) (string, error) {
+func (c *EcsClient) ensureVpc(region RegionId) (string, error) {
 	ticker := time.NewTicker(time.Second)
 	for range ticker.C {
 		vpcs, err := c.describeVpcs(region)
@@ -74,23 +87,23 @@ func (c *Client) ensureVpc(region RegionId) (string, error) {
 	return "", nil
 }
 
-func (c *Client) describeVSwitches(region RegionId) ([]ali.VSwitch, error) {
-	req := ali.CreateDescribeVSwitchesRequest()
+func (c *EcsClient) describeVSwitches(region RegionId) ([]ecs.VSwitch, error) {
+	req := ecs.CreateDescribeVSwitchesRequest()
 	req.RegionId = string(region)
-	resp, err := c.ali.DescribeVSwitches(req)
+	resp, err := c.ecs.DescribeVSwitches(req)
 	if err != nil {
 		return nil, err
 	}
 	return resp.VSwitches.VSwitch, nil
 }
 
-func (c *Client) createVSwitch(region RegionId, zone ZoneId, vpcId string) (string, error) {
-	req := ali.CreateCreateVSwitchRequest()
+func (c *EcsClient) createVSwitch(region RegionId, zone ZoneId, vpcId string) (string, error) {
+	req := ecs.CreateCreateVSwitchRequest()
 	req.CidrBlock = vSwitchCidrBlock
 	req.VpcId = vpcId
 	req.ZoneId = string(zone)
 	req.RegionId = string(region)
-	resp, err := c.ali.CreateVSwitch(req)
+	resp, err := c.ecs.CreateVSwitch(req)
 	if err != nil {
 		return "", err
 	}
@@ -98,14 +111,14 @@ func (c *Client) createVSwitch(region RegionId, zone ZoneId, vpcId string) (stri
 	return resp.VSwitchId, nil
 }
 
-func (c *Client) deleteVSwitch(vSwitchId string) error {
-	req := ali.CreateDeleteVSwitchRequest()
+func (c *EcsClient) deleteVSwitch(vSwitchId string) error {
+	req := ecs.CreateDeleteVSwitchRequest()
 	req.VSwitchId = vSwitchId
-	_, err := c.ali.DeleteVSwitch(req)
+	_, err := c.ecs.DeleteVSwitch(req)
 	return err
 }
 
-func (c *Client) ensureVSwitch(region RegionId, zone ZoneId) (string, string, error) {
+func (c *EcsClient) ensureVSwitch(region RegionId, zone ZoneId) (string, string, error) {
 	ticker := time.NewTicker(time.Second)
 	for range ticker.C {
 		vSwitches, err := c.describeVSwitches(region)
@@ -130,7 +143,7 @@ func (c *Client) ensureVSwitch(region RegionId, zone ZoneId) (string, string, er
 	return "", "", nil
 }
 
-func (c *Client) ensureNetwork(region RegionId, zone ZoneId) (string, string, error) {
+func (c *EcsClient) ensureNetwork(region RegionId, zone ZoneId) (string, string, error) {
 	vpcId, err := c.ensureVpc(region)
 	if err != nil {
 		return "", "", err
@@ -168,13 +181,13 @@ func (c *Client) ensureNetwork(region RegionId, zone ZoneId) (string, string, er
 	return vpcId, vSwitchId, nil
 }
 
-func (c *Client) CreateInstance(config *Cfg, name string) (string, error) {
+func (c *EcsClient) CreateInstance(config *EcsCfg, name string) (string, error) {
 	_, vSwitchId, err := c.ensureNetwork(config.Derived.Region, config.Zone)
 	if err != nil {
 		return "", err
 	}
 
-	req := ali.CreateCreateInstanceRequest()
+	req := ecs.CreateCreateInstanceRequest()
 
 	// https://help.aliyun.com/document_detail/25499.html
 	req.ZoneId = string(config.Zone)
@@ -198,7 +211,7 @@ func (c *Client) CreateInstance(config *Cfg, name string) (string, error) {
 	req.CreditSpecification = "Unlimited"
 	req.DryRun = requests.NewBoolean(config.DryRun)
 
-	resp, err := c.ali.CreateInstance(req)
+	resp, err := c.ecs.CreateInstance(req)
 	if err != nil {
 		return "", err
 	}
@@ -206,58 +219,58 @@ func (c *Client) CreateInstance(config *Cfg, name string) (string, error) {
 	return resp.InstanceId, nil
 }
 
-func (c *Client) BindPublicIp(instanceId string) (string, error) {
+func (c *EcsClient) BindPublicIp(instanceId string) (string, error) {
 	if false {
 		return "", nil
 	}
-	req := ali.CreateAllocatePublicIpAddressRequest()
+	req := ecs.CreateAllocatePublicIpAddressRequest()
 	req.InstanceId = instanceId
 
-	resp, err := c.ali.AllocatePublicIpAddress(req)
+	resp, err := c.ecs.AllocatePublicIpAddress(req)
 	if err != nil {
 		return "", err
 	}
 	return resp.IpAddress, nil
 }
 
-func (c *Client) StartInstance(instanceId string) error {
-	req := ali.CreateStartInstanceRequest()
+func (c *EcsClient) StartInstance(instanceId string) error {
+	req := ecs.CreateStartInstanceRequest()
 	req.InstanceId = instanceId
 
-	_, err := c.ali.StartInstance(req)
+	_, err := c.ecs.StartInstance(req)
 	return err
 }
 
-func (c *Client) RebootInstance(instanceId string) error {
-	req := ali.CreateRebootInstanceRequest()
+func (c *EcsClient) RebootInstance(instanceId string) error {
+	req := ecs.CreateRebootInstanceRequest()
 	req.InstanceId = instanceId
 
-	_, err := c.ali.RebootInstance(req)
+	_, err := c.ecs.RebootInstance(req)
 	return err
 }
 
-func (c *Client) StopInstance(instanceId string) error {
-	req := ali.CreateStopInstanceRequest()
+func (c *EcsClient) StopInstance(instanceId string) error {
+	req := ecs.CreateStopInstanceRequest()
 	req.InstanceId = instanceId
 	req.ForceStop = requests.NewBoolean(true)
 
-	_, err := c.ali.StopInstance(req)
+	_, err := c.ecs.StopInstance(req)
 	return err
 }
 
-func (c *Client) DeleteInstance(region RegionId, instanceId string) error {
-	req := ali.CreateDeleteInstanceRequest()
+func (c *EcsClient) DeleteInstance(region RegionId, instanceId string) error {
+	req := ecs.CreateDeleteInstanceRequest()
 	req.InstanceId = instanceId
 
-	_, err := c.ali.DeleteInstance(req)
+	_, err := c.ecs.DeleteInstance(req)
 	return err
 }
 
-func (c *Client) DescribeInstances(region RegionId, ip string) ([]ali.Instance, error) {
-	req := ali.CreateDescribeInstancesRequest()
+func (c *EcsClient) DescribeInstances(region RegionId, ip string) ([]ecs.Instance, error) {
+	req := ecs.CreateDescribeInstancesRequest()
 	req.RegionId = string(region)
 
-	resp, err := c.ali.DescribeInstances(req)
+	resp, err := c.ecs.DescribeInstances(req)
 	if err != nil {
 		return nil, err
 	}
@@ -269,9 +282,9 @@ func (c *Client) DescribeInstances(region RegionId, ip string) ([]ali.Instance, 
 	for _, ins := range resp.Instances.Instance {
 		for _, ipAddr := range ins.PublicIpAddress.IpAddress {
 			if ipAddr == ip {
-				return []ali.Instance{ins}, nil
+				return []ecs.Instance{ins}, nil
 			}
 		}
 	}
-	return []ali.Instance{}, nil
+	return []ecs.Instance{}, nil
 }

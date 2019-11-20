@@ -17,8 +17,8 @@ const (
 	loopInterval = 500 * time.Millisecond
 )
 
-func acquireInstanceByIp(c *aliecs.Client, region, ip string) (*ali.Instance, error) {
-	instances, err := c.DescribeInstances(aliecs.RegionId(region), ip)
+func acquireInstanceByIp(c *aliyun.EcsClient, region, ip string) (*ali.Instance, error) {
+	instances, err := c.DescribeInstances(aliyun.RegionId(region), ip)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +34,8 @@ func acquireInstanceByIp(c *aliecs.Client, region, ip string) (*ali.Instance, er
 	return &instances[0], nil
 }
 
-func acquireInstanceByName(c *aliecs.Client, region, name string) (*ali.Instance, error) {
-	instances, err := c.DescribeInstances(aliecs.RegionId(region), "")
+func acquireInstanceByName(c *aliyun.EcsClient, region, name string) (*ali.Instance, error) {
+	instances, err := c.DescribeInstances(aliyun.RegionId(region), "")
 	if err != nil {
 		return nil, err
 	}
@@ -75,28 +75,28 @@ func main() {
 	idx := flag.Int("idx", 0, "idx")
 	flag.Parse()
 
-	cfg, err := aliecs.NewConfig()
+	cfg, err := aliyun.NewEcsConfig()
 	if err != nil {
-		aliecs.Error("error creating config: %v", err)
+		aliyun.Error("error creating config: %v", err)
 		return
 	}
 
-	c, err := aliecs.NewClient(cfg)
+	c, err := aliyun.NewEcsClient(cfg)
 	if err != nil {
-		aliecs.Error("error creating ecs client: %v", err)
+		aliyun.Error("error creating ecs client: %v", err)
 		return
 	}
 	//c.DescribeZones(ecs.RegionHk, ecs.PostPaid)
 
-	regions := map[aliecs.RegionId]bool{}
-	for _, r := range aliecs.ZoneToRegion {
+	regions := map[aliyun.RegionId]bool{}
+	for _, r := range aliyun.ZoneToRegion {
 		regions[r] = true
 	}
 	instances := []ali.Instance{}
 	for r, _ := range regions {
 		results, err := c.DescribeInstances(r, "")
 		if err != nil {
-			aliecs.Error("error describe region %v: %v", r, err)
+			aliyun.Error("error describe region %v: %v", r, err)
 			return
 		}
 		instances = append(instances, results...)
@@ -135,7 +135,7 @@ func main() {
 			name = targetIns.InstanceName
 		}
 	}
-	aliecs.Text(strings.Join(lines, "\n"))
+	aliyun.Text(strings.Join(lines, "\n"))
 
 	switch *op {
 	case "desc":
@@ -143,24 +143,24 @@ func main() {
 		instanceIp, isCreated := up(c, cfg)
 		if isCreated {
 			if err := runCmds(instanceIp, cfg.RootPwd, cfg.InitCmds); err != nil {
-				aliecs.Error("error initializing instance environment: %v", err)
+				aliyun.Error("error initializing instance environment: %v", err)
 			}
 		}
 	case "reboot":
 		if name == "" {
-			aliecs.Error("no instance is running")
+			aliyun.Error("no instance is running")
 			return
 		}
 		reboot(c, region, name)
 	case "down":
 		if name == "" {
-			aliecs.Error("no instance is running")
+			aliyun.Error("no instance is running")
 			return
 		}
 		down(c, region, name)
 	case "del":
 		if name == "" {
-			aliecs.Error("no instance is running")
+			aliyun.Error("no instance is running")
 			return
 		}
 		if down(c, region, name) {
@@ -168,30 +168,30 @@ func main() {
 		}
 	case "run":
 		if ip == "" {
-			aliecs.Error("no instance has no public IP")
+			aliyun.Error("no instance has no public IP")
 			return
 		}
 		if err := runCmds(ip, cfg.RootPwd, cfg.InitCmds); err != nil {
-			aliecs.Error("error running commands: %v", err)
+			aliyun.Error("error running commands: %v", err)
 		}
 	}
 }
 
-func up(c *aliecs.Client, cfg *aliecs.Cfg) (string, bool) {
+func up(c *aliyun.EcsClient, cfg *aliyun.EcsCfg) (string, bool) {
 	ticker := time.NewTicker(loopInterval)
-	pt := aliecs.NewProgressTracker()
+	pt := aliyun.NewProgressTracker()
 	isCreated := false
 
-	instanceName := aliecs.RegionToBr[cfg.Derived.Region] + "-" + time.Now().Format("20060102T1504")
+	instanceName := aliyun.RegionToBr[cfg.Derived.Region] + "-" + time.Now().Format("20060102T1504")
 	for range ticker.C {
 		if ins, err := acquireInstanceByName(c, string(cfg.Derived.Region), instanceName); err != nil {
-			aliecs.Error("error querying instances: %v", err)
+			aliyun.Error("error querying instances: %v", err)
 			continue
 		} else {
 			if ins == nil {
 				// instance does NOT exist
 				if _, err := c.CreateInstance(cfg, instanceName); err != nil {
-					aliecs.Error("error creating instance %v", err)
+					aliyun.Error("error creating instance %v", err)
 				}
 				isCreated = true
 				continue
@@ -203,24 +203,24 @@ func up(c *aliecs.Client, cfg *aliecs.Cfg) (string, bool) {
 				ip = ins.PublicIpAddress.IpAddress[0]
 			}
 			switch ins.Status {
-			case string(aliecs.Running):
+			case string(aliyun.Running):
 				if len(ip) == 0 {
-					aliecs.Info("public IP address is missing, requesting a new one")
+					aliyun.Info("public IP address is missing, requesting a new one")
 					if _, err := c.BindPublicIp(ins.InstanceId); err != nil {
-						aliecs.Error("error binding public ip to instance: %v", err)
+						aliyun.Error("error binding public ip to instance: %v", err)
 					}
 				} else {
-					aliecs.Info("instance is up running, IP: %s", ip)
+					aliyun.Info("instance is up running, IP: %s", ip)
 					return ip, isCreated
 				}
-			case string(aliecs.Starting):
+			case string(aliyun.Starting):
 				pt.Info("instance is being started up")
-			case string(aliecs.Stopping):
+			case string(aliyun.Stopping):
 				pt.Info("instance is being stopped")
-			case string(aliecs.Stopped):
-				aliecs.Info("instance is stopped, trying to start it up")
+			case string(aliyun.Stopped):
+				aliyun.Info("instance is stopped, trying to start it up")
 				if err := c.StartInstance(ins.InstanceId); err != nil {
-					aliecs.Error("error starting ecs instance: %v", err)
+					aliyun.Error("error starting ecs instance: %v", err)
 				}
 			}
 		}
@@ -229,23 +229,23 @@ func up(c *aliecs.Client, cfg *aliecs.Cfg) (string, bool) {
 	return "", false
 }
 
-func reboot(c *aliecs.Client, region, name string) bool {
+func reboot(c *aliyun.EcsClient, region, name string) bool {
 	ticker := time.NewTicker(loopInterval)
-	pt := aliecs.NewProgressTracker()
+	pt := aliyun.NewProgressTracker()
 	rebooted := false
 	for range ticker.C {
 		if ins, err := acquireInstanceByName(c, region, name); err != nil {
-			aliecs.Error("error querying instances: %v", err)
+			aliyun.Error("error querying instances: %v", err)
 			continue
 		} else {
 			if ins == nil {
-				aliecs.Info("instance does NOT exist")
+				aliyun.Info("instance does NOT exist")
 				return false
 			}
 
 			if !rebooted {
 				if err := c.RebootInstance(ins.InstanceId); err != nil {
-					aliecs.Error("error starting ecs instance: %v", err)
+					aliyun.Error("error starting ecs instance: %v", err)
 				} else {
 					rebooted = true
 				}
@@ -254,15 +254,15 @@ func reboot(c *aliecs.Client, region, name string) bool {
 
 			// instance exists
 			switch ins.Status {
-			case string(aliecs.Running):
-				aliecs.Info("instance is up running")
+			case string(aliyun.Running):
+				aliyun.Info("instance is up running")
 				return true
-			case string(aliecs.Starting):
+			case string(aliyun.Starting):
 				pt.Info("instance is being started up")
-			case string(aliecs.Stopping):
+			case string(aliyun.Stopping):
 				pt.Info("instance is being stopped")
-			case string(aliecs.Stopped):
-				aliecs.Info("instance is stopped")
+			case string(aliyun.Stopped):
+				aliyun.Info("instance is stopped")
 			}
 		}
 	}
@@ -270,32 +270,32 @@ func reboot(c *aliecs.Client, region, name string) bool {
 	return false
 }
 
-func down(c *aliecs.Client, region, name string) bool {
+func down(c *aliyun.EcsClient, region, name string) bool {
 	ticker := time.NewTicker(loopInterval)
-	pt := aliecs.NewProgressTracker()
+	pt := aliyun.NewProgressTracker()
 	for range ticker.C {
 		if ins, err := acquireInstanceByName(c, region, name); err != nil {
-			aliecs.Error("error querying instances: %v", err)
+			aliyun.Error("error querying instances: %v", err)
 			continue
 		} else {
 			if ins == nil {
-				aliecs.Info("instance does NOT exist")
+				aliyun.Info("instance does NOT exist")
 				return false
 			}
 
 			// instance exists
 			switch ins.Status {
-			case string(aliecs.Running):
-				aliecs.Info("instance is running, trying to stop it")
+			case string(aliyun.Running):
+				aliyun.Info("instance is running, trying to stop it")
 				if err := c.StopInstance(ins.InstanceId); err != nil {
-					aliecs.Error("error starting ecs instance: %v", err)
+					aliyun.Error("error starting ecs instance: %v", err)
 				}
-			case string(aliecs.Starting):
+			case string(aliyun.Starting):
 				pt.Info("instance is being started up")
-			case string(aliecs.Stopping):
+			case string(aliyun.Stopping):
 				pt.Info("instance is being stopped")
-			case string(aliecs.Stopped):
-				aliecs.Info("instance is stopped")
+			case string(aliyun.Stopped):
+				aliyun.Info("instance is stopped")
 				return true
 			}
 		}
@@ -304,23 +304,23 @@ func down(c *aliecs.Client, region, name string) bool {
 	return false
 }
 
-func del(c *aliecs.Client, region, name string) {
+func del(c *aliyun.EcsClient, region, name string) {
 	ticker := time.NewTicker(loopInterval)
-	pt := aliecs.NewProgressTracker()
+	pt := aliyun.NewProgressTracker()
 	for range ticker.C {
 		if ins, err := acquireInstanceByName(c, region, name); err != nil {
-			aliecs.Error("error querying instances: %v", err)
+			aliyun.Error("error querying instances: %v", err)
 			continue
 		} else {
 			if ins == nil {
-				aliecs.Info("instance does NOT exist")
+				aliyun.Info("instance does NOT exist")
 				return
 			}
 
 			// instance exists
-			aliecs.Info("instance exists, trying to delete it")
-			if err := c.DeleteInstance(aliecs.RegionId(region), ins.InstanceId); err != nil {
-				aliecs.Error("error deleting ecs instance: %v", err)
+			aliyun.Info("instance exists, trying to delete it")
+			if err := c.DeleteInstance(aliyun.RegionId(region), ins.InstanceId); err != nil {
+				aliyun.Error("error deleting ecs instance: %v", err)
 				continue
 			}
 			break
@@ -329,10 +329,10 @@ func del(c *aliecs.Client, region, name string) {
 
 	for range ticker.C {
 		if ins, err := acquireInstanceByName(c, region, name); err != nil {
-			aliecs.Error("error querying instances: %v", err)
+			aliyun.Error("error querying instances: %v", err)
 			continue
 		} else if ins == nil {
-			aliecs.Info("instance is deleted")
+			aliyun.Info("instance is deleted")
 			return
 		}
 		pt.Info("instance is being deleted")
