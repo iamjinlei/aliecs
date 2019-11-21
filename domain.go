@@ -1,7 +1,6 @@
 package aliyun
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -61,6 +60,5 @@ func (c *DomainClient) CheckDomain(d string) (string, int, int64, error) {
 	if err != nil {
 		return "", -1, 0, err
 	}
-	fmt.Printf("%+v\n", resp)
 	return resp.DomainName, int(status), resp.Price, nil
 }

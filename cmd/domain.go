@@ -4,13 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/iamjinlei/aliecs"
-)
-
-const (
-	loopInterval = 500 * time.Millisecond
 )
 
 func main() {
