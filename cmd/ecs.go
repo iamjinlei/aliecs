@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	ali "github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 
 	"github.com/iamjinlei/aliecs"
 	"github.com/iamjinlei/gossh"
@@ -17,7 +17,7 @@ const (
 	loopInterval = 500 * time.Millisecond
 )
 
-func acquireInstanceByIp(c *aliyun.EcsClient, region, ip string) (*ali.Instance, error) {
+func acquireInstanceByIp(c *aliyun.EcsClient, region, ip string) (*ecs.Instance, error) {
 	instances, err := c.DescribeInstances(aliyun.RegionId(region), ip)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func acquireInstanceByIp(c *aliyun.EcsClient, region, ip string) (*ali.Instance,
 	return &instances[0], nil
 }
 
-func acquireInstanceByName(c *aliyun.EcsClient, region, name string) (*ali.Instance, error) {
+func acquireInstanceByName(c *aliyun.EcsClient, region, name string) (*ecs.Instance, error) {
 	instances, err := c.DescribeInstances(aliyun.RegionId(region), "")
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func acquireInstanceByName(c *aliyun.EcsClient, region, name string) (*ali.Insta
 	return nil, nil
 }
 
-type instanceList []ali.Instance
+type instanceList []ecs.Instance
 
 func (s instanceList) Len() int {
 	return len(s)
@@ -92,7 +92,7 @@ func main() {
 	for _, r := range aliyun.ZoneToRegion {
 		regions[r] = true
 	}
-	instances := []ali.Instance{}
+	instances := []ecs.Instance{}
 	for r, _ := range regions {
 		results, err := c.DescribeInstances(r, "")
 		if err != nil {

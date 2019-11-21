@@ -92,3 +92,13 @@ func NewEcsConfig() (*EcsCfg, error) {
 
 	return c, nil
 }
+
+func (c *EcsCfg) ToDomainCfg() *DomainCfg {
+	return &DomainCfg{
+		DryRun:          c.DryRun,
+		AccessKeyId:     c.AccessKeyId,
+		AccessKeySecret: c.AccessKeySecret,
+		Zone:            c.Zone,
+		Derived:         c.Derived,
+	}
+}
