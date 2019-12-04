@@ -43,7 +43,7 @@ func (c *DomainClient) ListDomains() ([]domain.Domain, error) {
  * -2：暂停注册；
  * -3：黑名单。
  */
-func (c *DomainClient) CheckDomain(d string) (string, int, int64, error) {
+func (c *DomainClient) CheckDomain(d string) (string, int, string, int64, error) {
 	req := domain.CreateCheckDomainRequest()
 
 	req.DomainName = d
@@ -53,12 +53,12 @@ func (c *DomainClient) CheckDomain(d string) (string, int, int64, error) {
 
 	resp, err := c.domain.CheckDomain(req)
 	if err != nil {
-		return "", -1, 0, err
+		return "", -1, "", 0, err
 	}
 
 	status, err := strconv.ParseInt(resp.Avail, 10, 64)
 	if err != nil {
-		return "", -1, 0, err
+		return "", -1, "", 0, err
 	}
-	return resp.DomainName, int(status), resp.Price, nil
+	return resp.DomainName, int(status), resp.Reason, resp.Price, nil
 }

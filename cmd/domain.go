@@ -57,12 +57,16 @@ func main() {
 		aliyun.Text(strings.Join(lines, "\n"))
 
 	case "check":
-		name, status, price, err := c.CheckDomain(*domain)
+		name, status, reason, price, err := c.CheckDomain(*domain)
 		if err != nil {
 			aliyun.Error("error listing domains: %v", err)
 			return
 		}
 
-		aliyun.Text("Domain = %v, Status = %v, Price = %v", name, statusMap[status], price)
+		if len(reason) == 0 {
+			reason = "-"
+		}
+
+		aliyun.Text("Domain = %v, Status = %v / %v, Price = %v", name, statusMap[status], reason, price)
 	}
 }
