@@ -57,7 +57,7 @@ func NewEcsConfig() (*EcsCfg, error) {
 		AccessKeySecret: os.Getenv("ECS_ACCESS_KEY_SECRET"),
 		KeyPairName:     os.Getenv("ECS_KEY_PAIR_NAME"),
 		RootPwd:         os.Getenv("ECS_ROOT_PWD"),
-		Zone:            ZoneHkB,
+		Zone:            ZoneHkC,
 		InstanceType:    T5c1m1,
 		//Image:           CentOsV706,
 		Image:                   UbuntuV1604,

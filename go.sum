@@ -24,10 +24,8 @@ github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/
 github.com/google/gofuzz v1.1.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20200209183636-89e6cbcd0b6d/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
-github.com/iamjinlei/gossh v0.0.0-20190627074440-d547c039fb3f h1:hV8t0+fepePKjjRS6Ba8j2E5aZ+ompcwxqVBf7BEeHs=
-github.com/iamjinlei/gossh v0.0.0-20190627074440-d547c039fb3f/go.mod h1:8nFy8Qldxcy/NC4dnsuyhMRXssgSO/RGk+5UPvPObSQ=
-github.com/iamjinlei/gossh v0.0.0-20190628065310-fa43450b47a4 h1:U5MXTjGkv4rbHl5T8ZlLqUu2SsRG7Yfu9fnoVApumxk=
-github.com/iamjinlei/gossh v0.0.0-20190628065310-fa43450b47a4/go.mod h1:8nFy8Qldxcy/NC4dnsuyhMRXssgSO/RGk+5UPvPObSQ=
+github.com/iamjinlei/gossh v0.0.0-20200214055701-d56978db7300 h1:BPted89hAtW/HvF13L3R9zK/smShtcVZFiJt8ubHYZ8=
+github.com/iamjinlei/gossh v0.0.0-20200214055701-d56978db7300/go.mod h1:6hitOrlXj8rgKfUdc73yR+TMV+T4LHB6hGq972AYOe0=
 github.com/jmespath/go-jmespath v0.0.0-20151117175822-3433f3ea46d9/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af h1:pmfjZENx5imkbgOkpRUYLnmbU7UEFbjtDA2hxJ1ichM=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=

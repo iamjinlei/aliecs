@@ -352,8 +352,8 @@ func runCmds(ip, rootPwd string, cmds []string) error {
 			return err
 		}
 
-		for line := range <-c.CombinedOut() {
-			aliyun.Info(string(line))
+		for line := range c.CombinedOut() {
+			fmt.Printf(string(line) + "\n")
 		}
 		c.Close()
 	}
