@@ -340,7 +340,7 @@ func del(c *aliyun.EcsClient, region, name string) {
 }
 
 func runCmds(ip, rootPwd string, cmds []string) error {
-	s, err := gossh.NewSessionWithRetry(ip+":22", "root", rootPwd, 10*time.Minute)
+	s, err := gossh.NewSessionWithRetry(ip+":22", "root", rootPwd, "", 10*time.Minute)
 	if err != nil {
 		return err
 	}
@@ -352,7 +352,9 @@ func runCmds(ip, rootPwd string, cmds []string) error {
 			return err
 		}
 
-		c.TailLog()
+		for line := range <-c.CombinedOut() {
+			aliyun.Info(string(line))
+		}
 		c.Close()
 	}
 
